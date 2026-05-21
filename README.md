@@ -79,7 +79,23 @@ AetherSummary operates utilizing a localized statistical Natural Language Proces
     NODE_ENV=development
     ```
 
+> If your deployment platform mounts the backend under a subpath such as `/_/backend`, also set `BACKEND_ROUTE_PREFIX=/_/backend` in `backend/.env` and `VITE_API_BASE_URL=/_/backend` in `frontend/.env.production`.
+
 ---
+
+## ✅ Continuous Integration
+
+[![CI](https://github.com/Varshika126/Ai-summarizer/actions/workflows/ci.yml/badge.svg)](https://github.com/Varshika126/Ai-summarizer/actions/workflows/ci.yml)
+
+This repository includes a GitHub Actions workflow at `.github/workflows/ci.yml` that:
+
+* Installs root, backend, and frontend dependencies
+* Builds the frontend with Vite
+
+Run the same CI pipeline locally with:
+```bash
+npm run ci
+```
 
 ## 🏁 Starting the Servers
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../apiClient';
 import { useTheme } from '../context/ThemeContext';
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
@@ -45,7 +45,7 @@ const HistoryPage = () => {
       if (inputType) queryStr += `&inputType=${inputType}`;
       if (favorite) queryStr += `&favorite=true`;
 
-      const { data } = await axios.get(queryStr);
+      const { data } = await api.get(queryStr);
       setSummaries(data);
     } catch (err) {
       console.error('Failed to load history:', err);
@@ -61,7 +61,7 @@ const HistoryPage = () => {
   // Toggle favorite
   const handleToggleFavorite = async (id) => {
     try {
-      const { data } = await axios.put(`/api/summaries/${id}/favorite`);
+      const { data } = await api.put(`/api/summaries/${id}/favorite`);
       setSummaries(prev =>
         prev.map(s => (s._id === id ? { ...s, isFavorite: data.isFavorite } : s))
       );
@@ -74,7 +74,7 @@ const HistoryPage = () => {
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this summary permanently from your database?')) return;
     try {
-      await axios.delete(`/api/summaries/${id}`);
+      await api.delete(`/api/summaries/${id}`);
       setSummaries(prev => prev.filter(s => s._id !== id));
     } catch (err) {
       console.error('Delete failed:', err);
@@ -86,7 +86,7 @@ const HistoryPage = () => {
     if (!window.confirm('WARNING: This will permanently wipe all summaries in your account history. Are you absolutely sure?')) return;
     try {
       setLoading(true);
-      await axios.delete('/api/summaries');
+      await api.delete('/api/summaries');
       setSummaries([]);
     } catch (err) {
       console.error('Clear history failed:', err);

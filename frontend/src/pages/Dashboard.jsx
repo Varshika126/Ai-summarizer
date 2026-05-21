@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../apiClient';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import Sidebar from '../components/Sidebar';
@@ -29,7 +29,7 @@ const Dashboard = () => {
     const fetchAnalytics = async () => {
       try {
         setLoading(true);
-        const res = await axios.get('/api/summaries/analytics');
+        const res = await api.get('/api/summaries/analytics');
         setData(res.data);
       } catch (err) {
         console.error('Error fetching analytics:', err);

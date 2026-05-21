@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../apiClient';
 
 const AuthContext = createContext();
 
@@ -14,24 +14,24 @@ export const AuthProvider = ({ children }) => {
   // Sync authorization headers whenever user changes
   useEffect(() => {
     if (user && user.token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${user.token}`;
+      api.defaults.headers.common['Authorization'] = `Bearer ${user.token}`;
       fetchSettings();
     } else {
-      delete axios.defaults.headers.common['Authorization'];
+      delete api.defaults.headers.common['Authorization'];
       setSettings(null);
     }
     setLoading(false);
   }, [user]);
 
   const login = async (email, password) => {
-    const { data } = await axios.post('/api/auth/login', { email, password });
+    const { data } = await api.post('/api/auth/login', { email, password });
     setUser(data);
     localStorage.setItem('user', JSON.stringify(data));
     return data;
   };
 
   const register = async (name, email, password) => {
-    const { data } = await axios.post('/api/auth/register', { name, email, password });
+    const { data } = await api.post('/api/auth/register', { name, email, password });
     setUser(data);
     localStorage.setItem('user', JSON.stringify(data));
     return data;
@@ -44,7 +44,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const updateProfile = async (name, email) => {
-    const { data } = await axios.put('/api/auth/profile', { name, email });
+    const { data } = await api.put('/api/auth/profile', { name, email });
     const updatedUser = { ...user, name: data.name, email: data.email, token: data.token };
     setUser(updatedUser);
     localStorage.setItem('user', JSON.stringify(updatedUser));
@@ -52,13 +52,13 @@ export const AuthProvider = ({ children }) => {
   };
 
   const updatePassword = async (currentPassword, newPassword) => {
-    const { data } = await axios.put('/api/auth/password', { currentPassword, newPassword });
+    const { data } = await api.put('/api/auth/password', { currentPassword, newPassword });
     return data;
   };
 
   const fetchSettings = async () => {
     try {
-      const { data } = await axios.get('/api/settings');
+      const { data } = await api.get('/api/settings');
       setSettings(data);
       
       // Update local storage and DOM to match db theme
@@ -77,7 +77,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const updateSettingsState = async (newSettings) => {
-    const { data } = await axios.put('/api/settings', newSettings);
+    const { data } = await api.put('/api/settings', newSettings);
     setSettings(data);
     
     if (data.theme) {

@@ -4,9 +4,13 @@
   "description": "AI-Powered Content Summarizer",
   "scripts": {
     "install-all": "npm install && npm install --prefix backend && npm install --prefix frontend",
+    "build": "npm install --prefix frontend && npm run build --prefix frontend",
+    "start": "node backend/server.js",
+    "ci": "npm run install-all && npm run build",
     "server": "npm run server --prefix backend",
     "client": "npm run dev --prefix frontend",
-    "dev": "concurrently \"npm run server\" \"npm run client\""
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "heroku-postbuild": "npm install --prefix frontend && npm run build --prefix frontend"
   },
   "dependencies": {
     "concurrently": "^8.2.2"
