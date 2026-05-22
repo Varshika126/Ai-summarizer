@@ -61,7 +61,7 @@ const SummarizerWorkspace = () => {
       const fetchLinkedSummary = async () => {
         try {
           setLoading(true);
-          const { data } = await api.get(`/api/summaries/${queryId}`);
+          const { data } = await api.get(`/summaries/${queryId}`);
           setSummary(data);
           setEditedTitle(data.generatedTitle);
         } catch (err) {
@@ -194,11 +194,11 @@ const SummarizerWorkspace = () => {
         formData.append('summaryType', summaryType);
         formData.append('fileTitle', file.name);
 
-        res = await api.post('/api/summaries', formData, {
+        res = await api.post('/summaries', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
       } else {
-        res = await api.post('/api/summaries', {
+        res = await api.post('/summaries', {
           inputType,
           text: inputType === 'text' ? text : undefined,
           url: inputType === 'url' ? url : undefined,
@@ -219,7 +219,7 @@ const SummarizerWorkspace = () => {
   const handleToggleFavorite = async () => {
     if (!summary) return;
     try {
-      const { data } = await api.put(`/api/summaries/${summary._id}/favorite`);
+      const { data } = await api.put(`/summaries/${summary._id}/favorite`);
       setSummary(prev => ({ ...prev, isFavorite: data.isFavorite }));
     } catch (err) {
       console.error('Failed to toggle favorite status:', err);
@@ -230,7 +230,7 @@ const SummarizerWorkspace = () => {
   const handleSaveTitle = async () => {
     if (!summary || !editedTitle.trim()) return;
     try {
-      const { data } = await api.put(`/api/summaries/${summary._id}/title`, { title: editedTitle });
+      const { data } = await api.put(`/summaries/${summary._id}/title`, { title: editedTitle });
       setSummary(prev => ({ ...prev, generatedTitle: data.generatedTitle }));
       setEditMode(false);
     } catch (err) {

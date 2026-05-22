@@ -15,7 +15,7 @@ const FavoritesPage = () => {
   const fetchFavorites = async () => {
     try {
       setLoading(true);
-      const { data } = await api.get('/api/summaries?favorite=true');
+      const { data } = await api.get('/summaries?favorite=true');
       setFavorites(data);
     } catch (err) {
       console.error('Failed to load favorites:', err);
@@ -30,7 +30,7 @@ const FavoritesPage = () => {
 
   const handleRemoveFavorite = async (id) => {
     try {
-      await api.put(`/api/summaries/${id}/favorite`);
+      await api.put(`/summaries/${id}/favorite`);
       setFavorites(prev => prev.filter(s => s._id !== id));
     } catch (err) {
       console.error('Remove favorite failed:', err);

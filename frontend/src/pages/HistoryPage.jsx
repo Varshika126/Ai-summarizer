@@ -41,7 +41,7 @@ const HistoryPage = () => {
   const fetchHistory = async () => {
     try {
       setLoading(true);
-      let queryStr = `/api/summaries?search=${encodeURIComponent(debouncedSearch)}`;
+      let queryStr = `/summaries?search=${encodeURIComponent(debouncedSearch)}`;
       if (inputType) queryStr += `&inputType=${inputType}`;
       if (favorite) queryStr += `&favorite=true`;
 
@@ -61,7 +61,7 @@ const HistoryPage = () => {
   // Toggle favorite
   const handleToggleFavorite = async (id) => {
     try {
-      const { data } = await api.put(`/api/summaries/${id}/favorite`);
+      const { data } = await api.put(`/summaries/${id}/favorite`);
       setSummaries(prev =>
         prev.map(s => (s._id === id ? { ...s, isFavorite: data.isFavorite } : s))
       );
@@ -74,7 +74,7 @@ const HistoryPage = () => {
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this summary permanently from your database?')) return;
     try {
-      await api.delete(`/api/summaries/${id}`);
+      await api.delete(`/summaries/${id}`);
       setSummaries(prev => prev.filter(s => s._id !== id));
     } catch (err) {
       console.error('Delete failed:', err);
@@ -86,7 +86,7 @@ const HistoryPage = () => {
     if (!window.confirm('WARNING: This will permanently wipe all summaries in your account history. Are you absolutely sure?')) return;
     try {
       setLoading(true);
-      await api.delete('/api/summaries');
+      await api.delete('/summaries');
       setSummaries([]);
     } catch (err) {
       console.error('Clear history failed:', err);

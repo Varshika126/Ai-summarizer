@@ -29,7 +29,7 @@ const Dashboard = () => {
     const fetchAnalytics = async () => {
       try {
         setLoading(true);
-        const res = await api.get('/api/summaries/analytics');
+        const res = await api.get('/summaries/analytics');
         setData(res.data);
       } catch (err) {
         console.error('Error fetching analytics:', err);
