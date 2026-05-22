@@ -17,14 +17,18 @@ connectDB();
 const app = express();
 
 // Middlewares
+const isDev = process.env.NODE_ENV !== 'production';
 const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',')
-  : ['http://localhost:3000'];
+  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+  : [];
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl, Vercel SSR)
+    // In development, allow all origins
+    if (isDev) return callback(null, true);
+    // Allow requests with no origin (server-to-server, curl)
     if (!origin) return callback(null, true);
+    // In production, check against ALLOWED_ORIGINS list
     if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
