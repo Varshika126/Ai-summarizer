@@ -15,7 +15,7 @@ connectDB();
 
 const app = express();
 
-// CORS — allow all vercel.app domains + localhost in dev
+// CORS — allow vercel.app domains, localhost, and any custom domains via env
 const extraOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
   : [];
@@ -38,22 +38,23 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Health check routes
+app.get('/', (req, res) => res.json({ message: 'AI Content Summarizer API is running' }));
+app.get('/api', (req, res) => res.json({ message: 'AI Content Summarizer API is running' }));
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/summaries', summaryRoutes);
 
-app.get('/api', (req, res) => {
-  res.json({ message: 'AI Content Summarizer API is running' });
-});
-
-// Error handling middleware
+// Error handling
 app.use(notFound);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-// Start HTTP server only in local dev (not on Vercel serverless)
+// Only bind to port when running directly (local dev)
+// On Vercel, the file is imported as a module — no listen needed
 if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);

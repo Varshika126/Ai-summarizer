@@ -3,18 +3,13 @@
   "buildCommand": "npm install --prefix frontend && npm run build --prefix frontend",
   "outputDirectory": "frontend/dist",
   "installCommand": "npm install --prefix backend",
-  "functions": {
-    "backend/server.js": {
-      "runtime": "nodejs20.x"
-    }
-  },
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "/backend/server.js"
+      "destination": "/api/index.js"
     },
     {
-      "source": "/((?!api).*)",
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ]
