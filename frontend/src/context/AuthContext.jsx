@@ -24,14 +24,14 @@ export const AuthProvider = ({ children }) => {
   }, [user]);
 
   const login = async (email, password) => {
-    const { data } = await api.post('/api/auth/login', { email, password });
+    const { data } = await api.post('/auth/login', { email, password });
     setUser(data);
     localStorage.setItem('user', JSON.stringify(data));
     return data;
   };
 
   const register = async (name, email, password) => {
-    const { data } = await api.post('/api/auth/register', { name, email, password });
+    const { data } = await api.post('/auth/register', { name, email, password });
     setUser(data);
     localStorage.setItem('user', JSON.stringify(data));
     return data;
@@ -44,7 +44,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const updateProfile = async (name, email) => {
-    const { data } = await api.put('/api/auth/profile', { name, email });
+    const { data } = await api.put('/auth/profile', { name, email });
     const updatedUser = { ...user, name: data.name, email: data.email, token: data.token };
     setUser(updatedUser);
     localStorage.setItem('user', JSON.stringify(updatedUser));
@@ -52,13 +52,13 @@ export const AuthProvider = ({ children }) => {
   };
 
   const updatePassword = async (currentPassword, newPassword) => {
-    const { data } = await api.put('/api/auth/password', { currentPassword, newPassword });
+    const { data } = await api.put('/auth/password', { currentPassword, newPassword });
     return data;
   };
 
   const fetchSettings = async () => {
     try {
-      const { data } = await api.get('/api/settings');
+      const { data } = await api.get('/settings');
       setSettings(data);
       
       // Update local storage and DOM to match db theme
@@ -77,7 +77,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const updateSettingsState = async (newSettings) => {
-    const { data } = await api.put('/api/settings', newSettings);
+    const { data } = await api.put('/settings', newSettings);
     setSettings(data);
     
     if (data.theme) {
