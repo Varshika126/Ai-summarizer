@@ -18,18 +18,26 @@ const app = express();
 
 // Middlewares
 const isDev = process.env.NODE_ENV !== 'production';
-const allowedOrigins = process.env.ALLOWED_ORIGINS
+
+// Extra allowed origins from env (comma-separated)
+const extraOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
   : [];
 
 app.use(cors({
   origin: (origin, callback) => {
-    // In development, allow all origins
-    if (isDev) return callback(null, true);
-    // Allow requests with no origin (server-to-server, curl)
+    // Allow requests with no origin (same-origin on Vercel, curl, mobile)
     if (!origin) return callback(null, true);
-    // In production, check against ALLOWED_ORIGINS list
-    if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+    // Always allow in development
+    if (isDev) return callback(null, true);
+    // Allow all vercel.app preview/production deployments
+    if (origin.endsWith('.vercel.app')) return callback(null, true);
+    // Allow localhost for testing
+    if (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) {
+      return callback(null, true);
+    }
+    // Allow any extra origins defined in env
+    if (extraOrigins.includes('*') || extraOrigins.includes(origin)) {
       return callback(null, true);
     }
     return callback(new Error('Not allowed by CORS'));
