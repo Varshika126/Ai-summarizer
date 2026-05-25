@@ -42,6 +42,19 @@ app.use(express.urlencoded({ extended: true }));
 app.get('/', (req, res) => res.json({ message: 'AI Content Summarizer API is running' }));
 app.get('/api', (req, res) => res.json({ message: 'AI Content Summarizer API is running' }));
 
+// Debug endpoint — shows which env vars are present (not their values)
+app.get('/api/debug/env', (req, res) => {
+  res.json({
+    has_google_API_KEY: !!process.env.google_API_KEY,
+    has_JWT_SECRET: !!process.env.JWT_SECRET,
+    has_MONGO_URI: !!process.env.MONGO_URI,
+    has_LANGSMITH_TRACING: !!process.env.LANGSMITH_TRACING,
+    has_LANGSMITH_API_KEY: !!process.env.LANGSMITH_API_KEY,
+    has_LANGSMITH_PROJECT: !!process.env.LANGSMITH_PROJECT,
+    NODE_ENV: process.env.NODE_ENV
+  });
+});
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/settings', settingsRoutes);
