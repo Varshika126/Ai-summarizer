@@ -124,8 +124,8 @@ const createSummary = async (req, res) => {
       return res.status(400).json({ message: 'Content to summarize is too short. Min 50 characters.' });
     }
 
-    // Process using our pure JS local NLP engine
-    const nlpData = nlpEngine.processText(textToProcess, typeOfSummary);
+    // Process using NLP engine (local TF-IDF + optional Gemini AI enhancement)
+    const nlpData = await nlpEngine.processText(textToProcess, typeOfSummary);
 
     // Save to MongoDB
     const summary = await Summary.create({
