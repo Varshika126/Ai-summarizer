@@ -90,8 +90,12 @@ function localProcessText(text, summaryType = 'medium') {
 // ─── Gemini AI enhancement (optional, runs after local NLP) ──────────────────
 
 async function enhanceWithGemini(localResult, text, summaryType) {
-  if (!process.env.google_API_KEY) return localResult;
+  if (!process.env.google_API_KEY) {
+    console.log('google_API_KEY not set, skipping Gemini');
+    return localResult;
+  }
 
+  console.log('Attempting Gemini enhancement...');
   try {
     const { ChatGoogleGenerativeAI } = require('@langchain/google-genai');
     const { PromptTemplate } = require('@langchain/core/prompts');
@@ -139,7 +143,7 @@ JSON format:
     };
 
   } catch (err) {
-    console.error('Gemini enhancement failed, using local result:', err.message);
+    console.error('Gemini enhancement failed, using local result:', err.message, err.stack);
     return localResult;
   }
 }
