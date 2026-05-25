@@ -5,9 +5,6 @@ const { StringOutputParser } = require('@langchain/core/output_parsers');
 // LangSmith tracing is enabled automatically via env vars:
 // LANGSMITH_TRACING, LANGSMITH_API_KEY, LANGSMITH_PROJECT, LANGSMITH_ENDPOINT
 
-/**
- * Build the Gemini LLM instance
- */
 function getLLM() {
   return new ChatGoogleGenerativeAI({
     model: 'gemini-1.5-flash',
@@ -15,6 +12,19 @@ function getLLM() {
     temperature: 0.3,
     maxOutputTokens: 2048,
   });
+}
+
+/**
+ * Extract JSON from Gemini response — handles markdown fences and extra text
+ */
+function extractJSON(raw) {
+  // Remove markdown code fences
+  let cleaned = raw.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
+  // Find the first { and last } to extract just the JSON object
+  const start = cleaned.indexOf('{');
+  const end = cleaned.lastIndexOf('}');
+  if (start === -1 || end === -1) throw new Error('No JSON object found in response');
+  return JSON.parse(cleaned.substring(start, end + 1));
 }
 
 /**
@@ -30,54 +40,44 @@ async function processText(text, summaryType = 'medium') {
   const charCount = text.length;
   const readingTime = Math.max(1, Math.ceil(wordCount / 225));
 
+  // If no API key, go straight to local fallback
+  if (!process.env.google_API_KEY) {
+    console.warn('google_API_KEY not set, using local NLP fallback');
+    return localProcessText(text, summaryType);
+  }
+
   try {
     const llm = getLLM();
     const parser = new StringOutputParser();
 
-    const prompt = PromptTemplate.fromTemplate(`
-You are an expert document summarizer. Analyze the following text and respond ONLY with a valid JSON object.
+    const prompt = PromptTemplate.fromTemplate(
+`You are an expert document summarizer. Analyze the text below and return ONLY a raw JSON object with no markdown formatting, no code blocks, no extra text.
 
-Text to analyze:
+Text:
 {text}
 
-Summary type requested: {summaryType}
-- short: 2-3 sentences
-- medium: 3-5 sentences  
-- detailed: 6-8 sentences
-- bullet: key bullet points
-- executive: executive overview with sections
+Summary type: {summaryType}
 
-Respond with ONLY this JSON structure (no markdown, no code blocks, just raw JSON):
-{{
-  "generatedTitle": "A concise descriptive title for this content",
-  "shortSummary": "2-3 sentence overview of the main points",
-  "detailedSummary": "Comprehensive summary based on the summaryType requested",
-  "bulletPoints": ["key point 1", "key point 2", "key point 3", "key point 4", "key point 5"],
-  "executiveSummary": "Executive overview with key findings",
-  "keywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5", "keyword6", "keyword7", "keyword8"],
-  "sentiment": "Positive or Negative or Neutral",
-  "sentimentScore": 0,
-  "insights": ["critical insight 1", "critical insight 2", "critical insight 3"]
-}}
-`);
+Return this exact JSON structure:
+{{"generatedTitle":"title here","shortSummary":"2-3 sentence summary here","detailedSummary":"detailed summary here","bulletPoints":["point 1","point 2","point 3","point 4","point 5"],"executiveSummary":"executive overview here","keywords":["word1","word2","word3","word4","word5"],"sentiment":"Neutral","sentimentScore":0,"insights":["insight 1","insight 2","insight 3"]}}`
+    );
 
     const chain = prompt.pipe(llm).pipe(parser);
+    const truncatedText = text.length > 10000 ? text.substring(0, 10000) + '...' : text;
 
-    const truncatedText = text.length > 12000 ? text.substring(0, 12000) + '...' : text;
+    const result = await chain.invoke({ text: truncatedText, summaryType });
 
-    const result = await chain.invoke({
-      text: truncatedText,
-      summaryType
-    });
-
-    // Parse the JSON response
     let parsed;
     try {
-      // Strip any accidental markdown code fences
-      const clean = result.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      parsed = JSON.parse(clean);
+      parsed = extractJSON(result);
     } catch (parseErr) {
-      console.error('Failed to parse Gemini JSON response, falling back to local NLP:', parseErr.message);
+      console.error('JSON parse failed, using local fallback. Raw response:', result.substring(0, 200));
+      return localProcessText(text, summaryType);
+    }
+
+    // Validate required fields — fall back if missing
+    if (!parsed.shortSummary || !parsed.detailedSummary) {
+      console.error('Gemini response missing required fields, using local fallback');
       return localProcessText(text, summaryType);
     }
 
@@ -86,23 +86,23 @@ Respond with ONLY this JSON structure (no markdown, no code blocks, just raw JSO
       charCount,
       readingTime,
       generatedTitle: parsed.generatedTitle || 'Synthesized Document Analysis',
-      shortSummary: parsed.shortSummary || '',
-      detailedSummary: parsed.detailedSummary || '',
-      bulletPoints: Array.isArray(parsed.bulletPoints) ? parsed.bulletPoints : [],
-      executiveSummary: parsed.executiveSummary || '',
-      keywords: Array.isArray(parsed.keywords) ? parsed.keywords : [],
+      shortSummary: String(parsed.shortSummary),
+      detailedSummary: String(parsed.detailedSummary),
+      bulletPoints: Array.isArray(parsed.bulletPoints) ? parsed.bulletPoints.filter(Boolean) : [],
+      executiveSummary: parsed.executiveSummary || parsed.detailedSummary || '',
+      keywords: Array.isArray(parsed.keywords) ? parsed.keywords.filter(Boolean) : [],
       sentiment: ['Positive', 'Negative', 'Neutral'].includes(parsed.sentiment) ? parsed.sentiment : 'Neutral',
       sentimentScore: typeof parsed.sentimentScore === 'number' ? parsed.sentimentScore : 0,
-      insights: Array.isArray(parsed.insights) ? parsed.insights : []
+      insights: Array.isArray(parsed.insights) ? parsed.insights.filter(Boolean) : []
     };
 
   } catch (err) {
-    console.error('Gemini AI call failed, falling back to local NLP:', err.message);
+    console.error('Gemini AI call failed, using local fallback:', err.message);
     return localProcessText(text, summaryType);
   }
 }
 
-// ─── Local TF-IDF fallback (original engine) ────────────────────────────────
+// ─── Local TF-IDF fallback ───────────────────────────────────────────────────
 
 const STOPWORDS = new Set([
   'a','about','above','after','again','against','all','am','an','and','any','are','arent','as','at',
@@ -121,7 +121,11 @@ const STOPWORDS = new Set([
 ]);
 
 function splitIntoSentences(text) {
-  return text.replace(/([.?!])\s*(?=[A-Z0-9])/g, '$1|').split('|').map(s => s.trim()).filter(s => s.length > 5);
+  return text
+    .replace(/([.?!])\s*(?=[A-Z0-9])/g, '$1|')
+    .split('|')
+    .map(s => s.trim())
+    .filter(s => s.length > 5);
 }
 
 function tokenize(text) {
@@ -133,18 +137,32 @@ function localProcessText(text, summaryType = 'medium') {
   const allTokens = tokenize(text);
   const wordCount = allTokens.length;
   const charCount = text.length;
+  const readingTime = Math.max(1, Math.ceil(wordCount / 225));
+
+  // Ensure we have at least something to work with
+  if (sentences.length === 0) {
+    return {
+      wordCount, charCount, readingTime,
+      generatedTitle: 'Document Analysis',
+      shortSummary: text.substring(0, 200),
+      detailedSummary: text.substring(0, 500),
+      bulletPoints: [text.substring(0, 100)],
+      executiveSummary: text.substring(0, 300),
+      keywords: [], sentiment: 'Neutral', sentimentScore: 0, insights: []
+    };
+  }
 
   const termFrequencies = {};
   allTokens.forEach(token => {
-    if (!STOPWORDS.has(token) && token.match(/^[a-zA-Z]{2,}$/)) {
+    if (!STOPWORDS.has(token) && /^[a-zA-Z]{2,}$/.test(token)) {
       termFrequencies[token] = (termFrequencies[token] || 0) + 1;
     }
   });
 
   const maxFreq = Math.max(...Object.values(termFrequencies), 1);
   const wordWeights = {};
-  Object.keys(termFrequencies).forEach(word => {
-    wordWeights[word] = 0.5 + 0.5 * (termFrequencies[word] / maxFreq);
+  Object.keys(termFrequencies).forEach(w => {
+    wordWeights[w] = 0.5 + 0.5 * (termFrequencies[w] / maxFreq);
   });
 
   const sentenceScores = sentences.map((sentence, idx) => {
@@ -168,13 +186,13 @@ function localProcessText(text, summaryType = 'medium') {
   return {
     wordCount,
     charCount,
-    readingTime: Math.max(1, Math.ceil(wordCount / 225)),
+    readingTime,
     generatedTitle: keywords.length >= 2
       ? `Insights on ${capitalize(keywords[0])} and ${capitalize(keywords[1])}`
       : 'Synthesized Document Analysis',
-    shortSummary: shortTop.join(' '),
-    detailedSummary: detailedTop.join(' '),
-    bulletPoints: bulletTop,
+    shortSummary: shortTop.join(' ') || sentences[0] || text.substring(0, 200),
+    detailedSummary: detailedTop.join(' ') || text.substring(0, 500),
+    bulletPoints: bulletTop.length > 0 ? bulletTop : [sentences[0]],
     executiveSummary: `${sentences[0]}\n\n${sorted.slice(1, 4).map(s => `• ${s.text}`).join('\n')}\n\n${sentences[sentences.length - 1]}`,
     keywords,
     sentiment: 'Neutral',
